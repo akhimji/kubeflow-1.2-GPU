@@ -1,6 +1,7 @@
 # kubeflow-1.2-GPU
 kubeflow-1.2-GPU
 
+```
 #Extend Disks on Master and Worker
 lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv  -r
 
@@ -111,3 +112,4 @@ $ kfctl delete -V -f kfctl_k8s_istio.v1.2.0.yaml  --force-deletion
 ansible-playbook submodules/kubespray/reset.yml  -K
 
 -----------------------
+```
