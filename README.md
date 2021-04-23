@@ -97,6 +97,35 @@ Fri Apr 23 03:06:41 2021
 +-----------------------------------------------------------------------------+
 pod "gpu-test" deleted
 
+
+k describe node ml00 | less
+
+Name:               ml00
+Roles:              <none>
+Labels:             beta.kubernetes.io/arch=amd64
+....
+                    nvidia.com/cuda.driver.major=465
+                    nvidia.com/cuda.driver.minor=19
+                    nvidia.com/cuda.driver.rev=01
+                    nvidia.com/cuda.runtime.major=11
+                    nvidia.com/cuda.runtime.minor=3
+                    nvidia.com/gfd.timestamp=1619147692
+                    nvidia.com/gpu.compute.major=6
+                    nvidia.com/gpu.compute.minor=1
+                    nvidia.com/gpu.count=1
+                    nvidia.com/gpu.family=pascal
+                    nvidia.com/gpu.memory=6078
+                    nvidia.com/gpu.product=NVIDIA-GeForce-GTX-1060-6GB
+                    nvidia.com/mig.strategy=mixed
+
+Capacity:
+...
+  pods:               110
+Allocatable:
+...
+  nvidia.com/gpu:     1
+  pods:               110
+
 ------------------------
 
 
