@@ -1,0 +1,50 @@
+ansible_become: true
+kubeadm_enabled: true
+kube_api_anonymous_auth: true
+kube_kubeadm_apiserver_extra_args:
+  service-account-issuer: "kubernetes.default.svc"
+  service-account-signing-key-file: "/etc/kubernetes/ssl/sa.key"
+# Set to false due to kubespray bug: https://github.com/kubernetes-sigs/kubespray/issues/5059
+kubectl_localhost: false
+kubeconfig_localhost: true
+helm_enabled: true
+tiller_node_selectors: "node-role.kubernetes.io/master=''"
+
+artifacts_dir: "{{ inventory_dir }}/artifacts"
+
+# Reset Flex Volume path to the default. Kubespray changes the path, which breaks Rook
+# see: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-storage/flexvolume.md
+kubelet_flexvolumes_plugins_dir: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+
+# Provide option to use GPU Operator instead of setting up NVIDIA driver and
+# Docker configuration.
+deepops_gpu_operator_enabled: false
+
+# Set the MIG labeling and use strategy to none, single, or mixed. See https://github.com/NVIDIA/k8s-device-plugin
+k8s_gpu_mig_strategy: "mixed"
+
+# When set to true, enables the PodSecurityPolicy admission controller and
+# defines two policies: privileged (applying to all resources in kube-system
+# namespace and kubelet) and restricted (applying all other namespaces).
+# Addons deployed in kube-system namespaces are handled.
+#podsecuritypolicy_enabled: false
+
+# Pin the version of kubespray dashboard https://github.com/kubernetes/dashboard/releases/tag/v2.0.3
+dashboard_enabled: true
+dashboard_image_tag: "v2.0.3"
+dashboard_image_repo: "kubernetesui/dashboard"
+dashboard_metrics_scrape_tagr: "v1.0.4"
+dashboard_metrics_scraper_repo: "kubernetesui/metrics-scraper"
+
+# kubespray v2.13.1 deploys helm v3.1.2
+helm_version: "v3.1.2"
+
+# Ensure hosts file generation only runs across k8s cluster
+hosts_add_ansible_managed_hosts_groups: ["k8s-cluster"]
+
+################################################################################
+# Container registry                                                           #
+################################################################################
+kube_enable_container_registry: true
+docker_insecure_registries: "{{ groups['kube-master']|map('regex_replace', '(.*)', '\\1:5000')|list + ['registry.local:31500']}}"
+docker_registry_mirrors: "{{ groups['kube-master'] | map('regex_replace', '(.*)', 'http://\\1:5000') | list }}"

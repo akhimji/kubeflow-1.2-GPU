@@ -1,0 +1,77 @@
+---
+# Kubernetes Cluster Playbook
+
+# Install python required for Ansible
+- include: bootstrap/bootstrap-python.yml
+  tags:
+    - bootstrap
+
+# Make sure Kubespray submodule is correct
+- hosts: all
+  gather_facts: false
+  tasks:
+    - name: make sure kubespray is at the correct version
+      command: git submodule update --init
+      args:
+        chdir: "{{ playbook_dir | dirname }}"
+      delegate_to: localhost
+  vars:
+    ansible_become: no
+    ansible_connection: local
+  tags:
+    - local
+
+# Set up passwordless sudo and SSH keys if needed
+- include: bootstrap/bootstrap-ssh.yml
+  tags:
+    - bootstrap
+- include: bootstrap/bootstrap-sudo.yml
+  tags:
+    - bootstrap
+
+# Disable cloud-init
+- include: generic/disable-cloud-init.yml
+  when: deepops_disable_cloud_init
+
+# Install 'sshpass' program for: https://github.com/ansible/ansible/issues/56629
+- hosts: all
+  gather_facts: true
+  tasks:
+    - name: install sshpass
+      package:
+        name: sshpass
+        state: present
+  environment: "{{proxy_env if proxy_env is defined else {}}}"
+  tags:
+    - bootstrap
+
+# Install NVIDIA driver on GPU servers
+- include: nvidia-software/nvidia-driver.yml
+  tags:
+    - nvidia
+  when: deepops_gpu_operator_enabled | default('false') | bool == false
+
+# Install NVIDIA container runtime on GPU servers
+- include: container/nvidia-docker.yml
+  tags:
+    - nvidia
+  when: deepops_gpu_operator_enabled | default('false') | bool == false
+
+# Install k8s GPU feature discovery
+- include: k8s-cluster/nvidia-k8s-gpu-feature-discovery.yml
+  tags:
+    - nvidia
+  when: deepops_gpu_operator_enabled | default('false') | bool == false
+
+# Install k8s GPU device plugin
+- include: k8s-cluster/nvidia-k8s-gpu-device-plugin.yml
+  tags:
+    - nvidia
+  when: deepops_gpu_operator_enabled | default('false') | bool == false
+
+# Install NVIDIA GPU Operator
+- include: k8s-cluster/nvidia-gpu-operator.yml
+  tags:
+    - nvidia
+  when: deepops_gpu_operator_enabled | default('false') | bool == true
+

@@ -1,0 +1,50 @@
+{
+    "variables":
+        {
+            "platform": "dgx1",
+            "dgxos5_iso": "/scratch/DGXOS-5.0.0-2020-10-23-18-34-11.iso",
+            "dgxos5_sha256sum": "2eefe51fea356642cbe087db6bac802179db6290db2fc192e81a4ed67b5ee30b"
+        },
+    "builders": [
+        {
+            "type": "qemu",
+            "communicator": "ssh",
+            "ssh_username": "root",
+            "ssh_password": "root",
+            "ssh_timeout": "90m",
+            "iso_url": "file:{{user `dgxos5_iso`}}",
+            "iso_checksum": "sha256:{{user `dgxos5_sha256sum`}}",
+            "boot_command": [
+                "<down>e<down><down><end> ",
+                "force-curtin=http://{{ .HTTPIP }}:{{ .HTTPPort }}/curtin.yaml ",
+                "force-platform={{user `platform`}} ",
+                "force-bootdisk=vda ",
+                "no-mlnx-fw-update ",
+                "start-systemd-networkd",
+                "<f10>"
+            ],
+            "http_directory": "http",
+            "boot_wait": "3s",
+            "disk_size": "9G",
+            "headless": true,
+            "vnc_bind_address": "0.0.0.0",
+            "memory": 2048,
+            "qemuargs": [
+                [ "-serial", "stdio" ],
+                [ "-smbios", "type=0,uefi=on" ],
+                [ "-smp", "8"]
+            ]
+        }
+    ],
+    "post-processors": [
+        {
+            "type": "shell-local",
+            "inline_shebang": "/bin/bash -e",
+            "inline": [
+                "source ../scripts/setup-nbd",
+                "TGZ_NAME='dgxos5.tar.gz'",
+                "source ../scripts/tar-root"
+            ]
+        }
+    ]
+}

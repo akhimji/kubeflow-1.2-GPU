@@ -1,0 +1,8 @@
+---
+- hosts: all
+  become: yes
+  roles:
+    - move-home-dirs
+    - kerberos-client
+    - nis-client
+    - autofs

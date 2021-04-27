@@ -1,0 +1,8 @@
+---
+kerberos_client_kdc_hostname: kerberos
+kerberos_client_admin_hostname: kerberos
+kerberos_client_dns_lookup_realm: false
+kerberos_client_dns_lookup_kdc: false
+kerberos_client_ticket_lifetime: 24h
+kerberos_client_renew_lifetime: 7d
+kerberos_client_forwardable: true

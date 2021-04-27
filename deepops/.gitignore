@@ -1,0 +1,14 @@
+# ansible
+*.retry
+
+# misc.
+.*.swp
+
+# project-specific
+/admin.conf
+/config*/
+!/config.example/
+/roles/galaxy/
+/k8s-config/
+/kubectl
+/tridentctl

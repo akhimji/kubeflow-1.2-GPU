@@ -1,0 +1,158 @@
+---
+
+- name: install dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - numactl
+  when: ansible_distribution == 'Ubuntu'
+
+- name: install dependencies
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - psmisc
+    - numactl
+  when: ansible_os_family == "RedHat"
+
+- name: add cgroups to grub options
+  lineinfile:
+    dest: /etc/default/grub
+    insertafter: '^GRUB_CMDLINE_LINUX=[^\\$]'
+    line: 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} cgroup_enable=memory swapaccount=1"'
+  register: update_grub
+
+- name: update grub
+  block:
+    - name: update grub
+      command: update-grub
+    - name: reboot after updating grub config
+      reboot:
+        reboot_timeout: "{{ slurm_node_reboot_timeout }}"
+  when: update_grub.changed and ansible_os_family == "Debian"
+
+- name: update grub
+  block:
+    - name: update grub
+      command: grub2-mkconfig -o /boot/grub2/grub.cfg
+    - name: reboot after updating grub config
+      reboot:
+        reboot_timeout: "{{ slurm_node_reboot_timeout }}"
+  when: update_grub.changed and ansible_os_family == "RedHat"
+
+- name: create sysconfig dir
+  file:
+    path: "{{ slurm_sysconf_dir }}"
+    state: directory
+    owner: root
+    mode: 0755
+
+- name: create slurm directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: slurm
+    mode: 0755
+  with_items:
+    - "{{ slurm_config_dir }}"
+    - "{{ slurm_config_dir }}/shared"
+    - "{{ slurm_config_dir }}/shared/bin"
+    - /var/log/slurm
+    - /var/spool/slurm/d
+  tags:
+    - prolog
+    - epilog
+
+- name: configure slurmd for pmix
+  blockinfile:
+    path: "{{ slurm_sysconf_dir }}/slurmd"
+    create: yes
+    block: |
+      PMIX_MCA_ptl=^usock
+      PMIX_MCA_psec=none
+      PMIX_SYSTEM_TMPDIR=/var/empty
+      PMIX_MCA_gds=hash
+  notify: restart slurmd
+  tags: config
+
+- name: copy shared scripts
+  template:
+    src: "{{ item }}"
+    dest: "{{ slurm_config_dir }}/shared/bin/"
+    mode: 0755
+  with_fileglob:
+    - templates/etc/slurm/shared/bin/*
+  tags:
+    - prolog
+    - epilog
+
+- name: include prolog/epilog
+  include: prolog_epilog.yml
+  when: slurm_enable_prolog_epilog
+
+- name: configure slurm.conf
+  template:
+    src: "{{ slurm_conf_template }}"
+    dest: "{{ slurm_config_dir }}/slurm.conf"
+  notify:
+  - restart slurmd
+  tags:
+  - config
+
+- name: configure cgroup.conf
+  template:
+    src: "{{ slurm_cgroup_conf_template }}"
+    dest: "{{ slurm_config_dir }}/cgroup.conf"
+  notify:
+  - restart slurmd
+  tags:
+  - config
+
+- name: configure gres.conf
+  template:
+    src: "{{ slurm_gres_conf_template }}"
+    dest: "{{ slurm_config_dir }}/gres.conf"
+  notify:
+  - restart slurmd
+  tags:
+  - config
+
+- name: start slurmd
+  systemd:
+    name: slurmd
+    state: restarted
+    enabled: yes
+    daemon-reload: yes
+
+- name: install /etc/localusers
+  template:
+    src: etc/localusers
+    dest: "{{ item }}"
+    mode: 0600
+  with_items:
+    - "{{ slurm_config_dir }}/localusers.backup"
+    - /etc/localusers
+  tags:
+    - localusers
+
+- name: setup /etc/pam.d/sshd
+  blockinfile:
+    path: /etc/pam.d/sshd
+    block: |
+      -account sufficient pam_listfile.so item=user sense=allow file=/etc/localusers
+      -account required {{ slurm_pam_lib_dir }}/pam_slurm_adopt.so
+    insertafter: EOF
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (ansible-role-slurm)"
+  tags:
+    - config
+
+- name: comment out pam_systemd.so as it conflicts with pam_slurm_adapt.so, see https://slurm.schedmd.com/pam_slurm_adopt.html
+  replace:
+    path: /etc/pam.d/common-session
+    regexp: '^([^#].*pam_systemd.so.*)'
+    replace: '# \1 # ANSIBLE MANAGED (ansible-role-slurm)'
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - config

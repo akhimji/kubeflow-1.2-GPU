@@ -1,0 +1,46 @@
+install:
+  log_file: /var/log/curtin.log
+  error_tarfile: /var/log/curtin/curtin-error-logs.tar
+  post_files:
+    - /var/log/curtin.log
+    - /var/log/syslog
+  save_install_config: /var/log/curtin-conf.yaml
+  save_install_log: /var/log/curtin-install.log
+  umount: disabled
+
+sources:
+  05_primary:
+    uri: "file:///curtin/ubuntu-20.04-server-cloudimg-amd64-root.tar.xz"
+    type: "tgz"
+
+reporting:
+  mylistener:
+    type: journald
+    identifier: "curtin-journald"
+    level: DEBUG
+
+# Run a subset of stages since we don't need a full install
+stages: ["early", "partitioning", "network", "extract", "late"]
+
+early_commands:
+  # stop the SSH server daemon so Packer can't connect yet
+  10_stop_ssh: ["systemctl", "stop", "ssh"]
+
+late_commands:
+  22_write_sources: ["curtin", "in-target", "--", "sh", "-c", "echo deb [trusted=yes] http://127.0.0.1/ / > /etc/apt/sources.list"]
+  23_apt_update: ["curtin", "in-target", "--", "sh", "-c", "DEBIAN_FRONTEND=noninteractive apt-get update -y"]
+  24_install_pkgs: ["curtin", "in-target", "--", "sh", "-c", "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' install --no-install-recommends CHANGE_INSTALL_PKGS"]
+  25_unattended_upgrades: ["curtin", "in-target", "--", "sh", "-c", "DEBIAN_FRONTEND=noninteractive apt-get purge -y unattended-upgrades"]
+
+  # Disable release-upgrade prompt
+  40_disable_upgrade: ["curtin", "in-target", "--", "sh", "-c", "sed -i -e 's/^Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades"]
+
+  # Enable SSH last when using Packer
+  90_conf_ssh: ["sed", "-i", "s/PasswordAuthentication no/PasswordAuthentication yes/", "/etc/ssh/sshd_config"]
+  91_conf_ssh: ["sed", "-i", "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/", "/etc/ssh/sshd_config"]
+  92_set_root_pw: ["sh", "-c", "echo root:root | chpasswd"]
+  93_start_ssh: ["systemctl", "start", "ssh"]
+
+  # Sleep just in case so Packer has a chance to shut down the machine vs the init script ending
+  # This won't actually run for 600 seconds
+  94_sleep: ["sleep", "600"]

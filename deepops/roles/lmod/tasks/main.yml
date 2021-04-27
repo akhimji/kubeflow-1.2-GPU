@@ -1,0 +1,92 @@
+#
+# ansible role to install lmod:
+#
+---
+- name: RedHat | add epel repo
+  become: yes
+  yum:
+    name: 
+      - "epel-release"
+    state: latest
+  environment: "{{proxy_env if proxy_env is defined else {}}}"
+  when: ansible_os_family == "RedHat"
+
+- name: "install packages"
+  become: yes
+  apt:
+    name:
+    - bash
+    - tcsh
+    - lmod
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: "install packages"
+  become: yes
+  yum:
+    name:
+    - bash
+    - tcsh
+    - Lmod
+  when: ansible_os_family == "RedHat"
+
+- name: "mkdir software path"
+  become: yes
+  file: path={{ sm_software_path }} state=directory
+
+- name: "mkdir module path"
+  become: yes
+  file: path={{ sm_module_path }} state=directory 
+
+- name: "configure sh profile"
+  become: yes
+  template:
+    src: templates/z00_lmod.sh
+    dest: /etc/profile.d
+    owner: root
+    group: root
+    mode: 0777
+  tags:
+    - configuration
+
+- name: "configure csh profile"
+  become: yes
+  template:
+    src: templates/z00_lmod.csh
+    dest: /etc/profile.d
+    owner: root
+    group: root
+    mode: 0777
+  tags:
+    - configuration
+
+# https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=891541
+- name: "bugfix for lomd posix_c"
+  become: yes
+  shell: |
+    ln -s -f /usr/lib/x86_64-linux-gnu/lua/5.1/posix_c.so /usr/lib/x86_64-linux-gnu/lua/5.1/posix.so
+    ln -s -f /usr/lib/x86_64-linux-gnu/lua/5.2/posix_c.so /usr/lib/x86_64-linux-gnu/lua/5.2/posix.so
+    ln -s -f /usr/lib/x86_64-linux-gnu/lua/5.3/posix_c.so /usr/lib/x86_64-linux-gnu/lua/5.3/posix.so
+  when: 
+    - ansible_distribution == 'Ubuntu'
+    - ansible_distribution_version == '18.04'
+
+- name: "unset previous lmod setup"
+  shell: unset MODULEPATH_ROOT
+  args:
+    executable: /bin/bash
+
+- name: "unset previous lmod setup"
+  shell: unsetenv MODULEPATH_ROOT
+  args:
+    executable: /bin/csh
+
+- name: "auto load lmod"
+  shell: . /etc/profile.d/z00_lmod.sh
+  args:
+    executable: /bin/bash
+
+- name: "auto load lmod "
+  shell: source /etc/profile.d/z00_lmod.csh
+  args:
+    executable: /bin/csh
