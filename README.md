@@ -1,6 +1,10 @@
 # kubeflow-1.2-GPU
-kubeflow-1.2-GPU
-
+This setup is based of components:
+- NVIDIA's DeepOps Configuration
+- Rook-Ceph Storage
+- Istio Service Mesh
+- MetalLB
+- Prometheus Monitoring
 
 #Extend Disks on Master and Workers
 ```
