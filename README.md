@@ -11,21 +11,24 @@ This setup is based of components:
 ```
 lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv  -r
 ```
-### Configure DNS or make host files consistent across all nodes
-### Ensure all Blockstorage devices are wiped (no partitions no filesystems) - Ceph Requirement
+- Configure DNS or make host files consistent across all nodes
+- Ensure all Blockstorage devices are wiped (no partitions no filesystems) - Ceph Requirement
 
 ## Install the prerequisites and configure Ansible.
 ```
+cd deepops/
 ./scripts/setup.sh
 ```
 
 #Installing Kubernetes with DeepOps
 ```
+vi config/inventory (add cluster nodes)
 ansible-playbook -l k8s-cluster -e '{"nvidia_driver_ubuntu_install_from_cuda_repo": yes}' playbooks/k8s-cluster.yml -K
 ```
 
 #Installing Istio
 ```
+cd istio-1.6.8/
 ./bin/istioctl install --set profile=demo
 ```
 
@@ -34,19 +37,21 @@ ansible-playbook -l k8s-cluster -e '{"nvidia_driver_ubuntu_install_from_cuda_rep
 ##Run the script to deploy the load balancer:
 
 ```
+cd deepops/
 ./scripts/k8s/deploy_loadbalancer.sh
 ```
 
 #Kubeflow Install (Istio components removed from yaml)
 ```
 cd hello-kf/
--rw-rw-r--  1 akadmin akadmin 2370 Apr 19 20:02 kfctl_k8s_istio.v1.2.0.yaml
-drwxrwxr-x 16 akadmin akadmin 4096 Apr 19 17:15 kustomize
+file> kfctl_k8s_istio.v1.2.0.yaml
+dir> kustomize
 $ kfctl apply -V -f kfctl_k8s_istio.v1.2.0.yaml 
 ```
 
 #Istio 1.6 Kubeflow Fix for UI
 ```
+cd hello-kf/
 cd .cache/manifests/manifests-1.2.0/istio/
 kubectl apply -f add-anonymous-user-filter-istio-1.6/envoy-filter.yaml
 ```
@@ -72,6 +77,7 @@ EOF
 ```
 
 #After creating 'ml' namespace via KF UI (cat ~/ml-default-editor.yaml)
+### this needs less permissoins. fix this
 ```
 kubectl apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -91,7 +97,7 @@ EOF
 
 --------------------
 
-##Testing
+# Testing
 ```
 $ kubectl run gpu-test --rm -t -i --restart=Never --image=nvcr.io/nvidia/cuda:10.1-base-ubuntu18.04 --limits=nvidia.com/gpu=1 nvidia-smi
 Fri Apr 23 03:06:41 2021       
@@ -115,7 +121,7 @@ Fri Apr 23 03:06:41 2021
 pod "gpu-test" deleted
 ```
 
-##Check GPU Labels
+### Check GPU Labels
 ```
 k describe node ml00 | less
 
@@ -148,16 +154,20 @@ Allocatable:
 ------------------------
 
 
-### Tear Down
+## Tear Down
 
-# Remove Kubeflow
+###  Remove Kubeflow
+```
 $ kfctl delete -V -f kfctl_k8s_istio.v1.2.0.yaml  --force-deletion
+```
+###  Remove Istio
+```
+./bin/istioctl manifest generate --set profile=demo | kubectl delete --ignore-not-found=true -f -
+```
 
-# Remove Istio
- ./bin/istioctl manifest generate --set profile=demo | kubectl delete --ignore-not-found=true -f -
-
-# Destory/Reset Cluster
+###   Destory/Reset Cluster
+```
 ansible-playbook submodules/kubespray/reset.yml  -K
-
+```
 -----------------------
 
