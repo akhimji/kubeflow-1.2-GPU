@@ -6,13 +6,15 @@ This setup is based of components:
 - MetalLB
 - Prometheus Monitoring
 
-#Extend Disks on Master and Workers
+## Setup Nodes
+### Ensure vgs and lvs extended (my personal setup)
 ```
 lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv  -r
 ```
+### Configure DNS or make host files consistent across all nodes
+### Ensure all Blockstorage devices are wiped (no partitions no filesystems) - Ceph Requirement
 
-
-#Install the prerequisites and configure Ansible.
+## Install the prerequisites and configure Ansible.
 ```
 ./scripts/setup.sh
 ```
@@ -148,14 +150,14 @@ Allocatable:
 
 ### Tear Down
 
-#Remove Kubeflow
+# Remove Kubeflow
 $ kfctl delete -V -f kfctl_k8s_istio.v1.2.0.yaml  --force-deletion
 
-#Remove Istio
+# Remove Istio
  ./bin/istioctl manifest generate --set profile=demo | kubectl delete --ignore-not-found=true -f -
 
-#Destory/Reset Cluster
+# Destory/Reset Cluster
 ansible-playbook submodules/kubespray/reset.yml  -K
 
 -----------------------
-```
+
