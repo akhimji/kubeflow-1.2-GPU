@@ -20,12 +20,12 @@ cd deepops/
 ./scripts/setup.sh
 ```
 
-#Installing Kubernetes with DeepOps
+## Installing Kubernetes with DeepOps
 ```
 vi config/inventory (add cluster nodes)
 ansible-playbook -l k8s-cluster -e '{"nvidia_driver_ubuntu_install_from_cuda_repo": yes}' playbooks/k8s-cluster.yml -K
 ```
-# Rook-Ceph
+##  Rook-Ceph
 ```
 cd rook-ceph/
 kubectl create -f crds.yaml -f common.yaml -f operator.yaml
@@ -47,6 +47,10 @@ kubectl create -f cluster.yaml
 ##### Wait for pods to stand up
 ```
 kubectl create -f csi/rbd/storageclass.yaml
+kubectl get storageclass
+NAME                        PROVISIONER                  RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+rook-ceph-block (default)   rook-ceph.rbd.csi.ceph.com   Delete          Immediate           true                   7h49m
+
 kubectl create -f toolbox.yaml 
 kubectl exec -it rook-ceph-tools-xxxxxx  -n rook-ceph /bin/bash
 # ceph status
@@ -73,13 +77,13 @@ ID  HOST       USED  AVAIL  WR OPS  WR DATA  RD OPS  RD DATA  STATE
  2  worker00  1903M  1861G      0        0       0        0   exists,up  
 ```
 
-# Installing Istio
+## Installing Istio
 ```
 cd istio-1.6.8/
 ./bin/istioctl install --set profile=demo
 ```
 
-#Load Balancer
+## Load Balancer
 ### Modify config/helm/metallb.yml to configure the IP range that the load balancer will hand out.
 ### Run the script to deploy the load balancer:
 
@@ -88,7 +92,7 @@ cd deepops/
 ./scripts/k8s/deploy_loadbalancer.sh
 ```
 
-#Kubeflow Install (Istio components removed from yaml)
+##  Kubeflow Install (Istio components removed from yaml)
 ```
 cd hello-kf/
 file> kfctl_k8s_istio.v1.2.0.yaml
@@ -96,14 +100,14 @@ dir> kustomize
 $ kfctl apply -V -f kfctl_k8s_istio.v1.2.0.yaml 
 ```
 
-#Istio 1.6 Kubeflow Fix for UI
+## Istio 1.6 Kubeflow Fix for UI
 ```
 cd hello-kf/
 cd .cache/manifests/manifests-1.2.0/istio/
 kubectl apply -f add-anonymous-user-filter-istio-1.6/envoy-filter.yaml
 ```
 
-#Add kubeflow-gateway (default for app)
+## Add kubeflow-gateway (default for app)
 ```
 kubectl apply -n kubeflow -f - <<EOF
 apiVersion: networking.istio.io/v1alpha3
@@ -123,7 +127,7 @@ spec:
 EOF
 ```
 
-#After creating 'ml' namespace via KF UI (cat ~/ml-default-editor.yaml)
+## After creating 'ml' namespace via KF UI (cat ~/ml-default-editor.yaml)
 ### this needs less permissoins. fix this
 ```
 kubectl apply -f - <<EOF
@@ -144,7 +148,7 @@ EOF
 
 --------------------
 
-# Testing
+## Testing
 ```
 $ kubectl run gpu-test --rm -t -i --restart=Never --image=nvcr.io/nvidia/cuda:10.1-base-ubuntu18.04 --limits=nvidia.com/gpu=1 nvidia-smi
 Fri Apr 23 03:06:41 2021       
@@ -210,6 +214,13 @@ $ kfctl delete -V -f kfctl_k8s_istio.v1.2.0.yaml  --force-deletion
 ###  Remove Istio
 ```
 ./bin/istioctl manifest generate --set profile=demo | kubectl delete --ignore-not-found=true -f -
+```
+
+###  Remove Rook-Ceph
+```
+Remove all PVC and PV
+Reverse Order Deletion Of Install Yamls
+kubectl delete -f xxxx.yaml
 ```
 
 ###   Destory/Reset Cluster
