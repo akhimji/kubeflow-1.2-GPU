@@ -25,16 +25,63 @@ cd deepops/
 vi config/inventory (add cluster nodes)
 ansible-playbook -l k8s-cluster -e '{"nvidia_driver_ubuntu_install_from_cuda_repo": yes}' playbooks/k8s-cluster.yml -K
 ```
+# Rook-Ceph
+```
+cd rook-ceph/
+kubectl create -f crds.yaml -f common.yaml -f operator.yaml
+```
+#### changes made to cluster.yaml
+```
+   nodes:
+    - name: "worker00"
+      devices: # specific devices to use for storage can be specified for each node
+      - name: "nvme0n1" # multiple osds can be created on high performance devices
+    - name: "worker01"
+      devices: # specific devices to use for storage can be specified for each node
+      - name: "nvme0n1" # multiple osds can be created on high performance devices
+    - name: "worker02"
+      devices: # specific devices to use for storage can be specified for each node
+      - name: "nvme0n1" # multiple osds can be created on high performance devices
+kubectl create -f cluster.yaml
+```
+##### Wait for pods to stand up
+```
+kubectl create -f csi/rbd/storageclass.yaml
+kubectl create -f toolbox.yaml 
+kubectl exec -it rook-ceph-tools-xxxxxx  -n rook-ceph /bin/bash
+# ceph status
+  cluster:
+    id:     dea324ce-ec4d-4a24-b758-501203c2319f
+    health: HEALTH_WARN
+            mons are allowing insecure global_id reclaim
+ 
+  services:
+    mon: 3 daemons, quorum a,b,c (age 7h)
+    mgr: a(active, since 7h)
+    osd: 3 osds: 3 up (since 7h), 3 in (since 7h)
+ 
+  data:
+    pools:   2 pools, 33 pgs
+    objects: 378 objects, 966 MiB
+    usage:   5.6 GiB used, 5.5 TiB / 5.5 TiB avail
+    pgs:     33 active+clean
 
-#Installing Istio
+#ceph osd status
+ID  HOST       USED  AVAIL  WR OPS  WR DATA  RD OPS  RD DATA  STATE      
+ 0  worker01  1903M  1861G      0        0       0        0   exists,up  
+ 1  worker02  1903M  1861G      0        0       0        0   exists,up  
+ 2  worker00  1903M  1861G      0        0       0        0   exists,up  
+```
+
+# Installing Istio
 ```
 cd istio-1.6.8/
 ./bin/istioctl install --set profile=demo
 ```
 
 #Load Balancer
-##Modify config/helm/metallb.yml to configure the IP range that the load balancer will hand out.
-##Run the script to deploy the load balancer:
+### Modify config/helm/metallb.yml to configure the IP range that the load balancer will hand out.
+### Run the script to deploy the load balancer:
 
 ```
 cd deepops/
