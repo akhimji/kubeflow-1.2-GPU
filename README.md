@@ -5,6 +5,8 @@ This setup is based of components:
 - Istio Service Mesh
 - MetalLB
 - Prometheus Monitoring
+  
+--------------------
 
 ## Setup Nodes
 ### Ensure vgs and lvs extended (my personal setup)
@@ -13,6 +15,34 @@ $ lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv  -r
 ```
 - Configure DNS or make host files consistent across all nodes
 - Ensure all Blockstorage devices are wiped (no partitions no filesystems) - Ceph Requirement
+
+### Purge pervious drivers and install latest. Reboot and validate 
+```
+sudo apt-get remove --purge '^nvidia-.*'
+sudo apt install nvidia-driver-455
+
+$ nvidia-smi    
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 465.19.01    Driver Version: 465.19.01    CUDA Version: 11.3     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA GeForce ...  On   | 00000000:03:00.0 Off |                  N/A |
+| 46%   26C    P8     7W / 120W |      1MiB /  6078MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+
+```
 
 ## Install the prerequisites and configure Ansible.
 ```
@@ -104,7 +134,7 @@ Node Monitor
 ![alt text](./imgs/mon-node.png)
 
 
-##  Kubeflow Install (Istio components removed from yaml as it installed 1.3.x)
+## Kubeflow Install (Istio components removed from yaml)
 ```
 cd hello-kf/
 file> kfctl_k8s_istio.v1.2.0.yaml
@@ -143,8 +173,9 @@ Create Namespace In Kubeflow
 
 ![alt text](./imgs/create-ns.png)
 
-## After creating 'ml' namespace via KF UI (cat ~/ml-default-editor.yaml)
-### this needs less permissoins. fix this
+--------------------
+
+#### After creating 'ml' namespace via KF UI apply the the below CRB (this needs less permissoins. fix this)
 ```
 kubectl apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -222,9 +253,13 @@ Allocatable:
 ## Training
 
 ### Create a GPU enabled notebook and test with a CNN example to leverage GPU
+### Monitor GPU usage via nvidi-smi command
 ![alt text](./imgs/train_with_gpu.png)
-
 ![alt text](./imgs/smi-train.png)
+
+#### Via Grafana/Prom
+![alt text](./imgs/mon-gpu-train.png)
+
 
 ------------------------
 
