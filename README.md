@@ -8,7 +8,6 @@ This setup is based of components:
   
 --------------------
 
-
 ## Setup Nodes
 ### Ensure vgs and lvs extended (my personal setup)
 ```
