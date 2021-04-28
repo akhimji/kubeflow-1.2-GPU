@@ -55,6 +55,18 @@ $ ./scripts/setup.sh
 vi config/inventory (add cluster nodes)
 $ ansible-playbook -l k8s-cluster -e '{"nvidia_driver_ubuntu_install_from_cuda_repo": yes}' playbooks/k8s-cluster.yml -K
 ```
+
+#### Validate cluster is up and running (ml00 is our GPU node)
+```
+$ kubectl get nodes -o wide
+NAME       STATUS   ROLES    AGE   VERSION    INTERNAL-IP      EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION       CONTAINER-RUNTIME
+master00   Ready    master   28h   v1.18.10   x.x.x.x   <none>        Ubuntu 18.04.5 LTS   4.15.0-142-generic   docker://19.3.12
+ml00       Ready    <none>   28h   v1.18.10   x.x.x.x   <none>        Ubuntu 18.04.4 LTS   5.4.0-72-generic     docker://19.3.12
+worker00   Ready    <none>   28h   v1.18.10   x.x.x.x   <none>        Ubuntu 18.04.5 LTS   4.15.0-142-generic   docker://19.3.12
+worker01   Ready    <none>   28h   v1.18.10   x.x.x.x   <none>        Ubuntu 18.04.5 LTS   4.15.0-142-generic   docker://19.3.12
+worker02   Ready    <none>   28h   v1.18.10   x.x.x.x   <none>        Ubuntu 18.04.5 LTS   4.15.0-142-generic   docker://19.3.12
+```
+
 ##  Rook-Ceph
 ```
 cd rook-ceph/
