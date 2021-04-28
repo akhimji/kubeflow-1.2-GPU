@@ -9,7 +9,7 @@ This setup is based of components:
 ## Setup Nodes
 ### Ensure vgs and lvs extended (my personal setup)
 ```
-lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv  -r
+$ lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv  -r
 ```
 - Configure DNS or make host files consistent across all nodes
 - Ensure all Blockstorage devices are wiped (no partitions no filesystems) - Ceph Requirement
@@ -17,20 +17,20 @@ lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv  -r
 ## Install the prerequisites and configure Ansible.
 ```
 cd deepops/
-./scripts/setup.sh
+$ ./scripts/setup.sh
 ```
 
 ## Installing Kubernetes with DeepOps
 ```
 vi config/inventory (add cluster nodes)
-ansible-playbook -l k8s-cluster -e '{"nvidia_driver_ubuntu_install_from_cuda_repo": yes}' playbooks/k8s-cluster.yml -K
+$ ansible-playbook -l k8s-cluster -e '{"nvidia_driver_ubuntu_install_from_cuda_repo": yes}' playbooks/k8s-cluster.yml -K
 ```
 ##  Rook-Ceph
 ```
 cd rook-ceph/
-kubectl create -f crds.yaml -f common.yaml -f operator.yaml
+$ kubectl create -f crds.yaml -f common.yaml -f operator.yaml
 ```
-#### changes made to cluster.yaml
+### changes made to cluster.yaml
 ```
    nodes:
     - name: "worker00"
@@ -42,12 +42,13 @@ kubectl create -f crds.yaml -f common.yaml -f operator.yaml
     - name: "worker02"
       devices: # specific devices to use for storage can be specified for each node
       - name: "nvme0n1" # multiple osds can be created on high performance devices
-kubectl create -f cluster.yaml
+$ kubectl create -f cluster.yaml
 ```
-##### Wait for pods to stand up
+### Wait for pods to stand up
 ```
-kubectl create -f csi/rbd/storageclass.yaml
-kubectl get storageclass
+$ kubectl create -f csi/rbd/storageclass.yaml
+
+$ kubectl get storageclass
 NAME                        PROVISIONER                  RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 rook-ceph-block (default)   rook-ceph.rbd.csi.ceph.com   Delete          Immediate           true                   7h49m
 
@@ -92,7 +93,18 @@ cd deepops/
 ./scripts/k8s/deploy_loadbalancer.sh
 ```
 
-##  Kubeflow Install (Istio components removed from yaml)
+## Monitoring
+### Deploy Prometheus and Grafana to monitor Kubernetes and cluster nodes:
+
+```
+cd deepops/
+./scripts/k8s/deploy_monitoring.sh
+```
+Node Monitor
+![alt text](./imgs/mon-node.png)
+
+
+##  Kubeflow Install (Istio components removed from yaml as it installed 1.3.x)
 ```
 cd hello-kf/
 file> kfctl_k8s_istio.v1.2.0.yaml
@@ -126,6 +138,10 @@ spec:
     - '*'
 EOF
 ```
+
+Create Namespace In Kubeflow
+
+![alt text](./imgs/create-ns.png)
 
 ## After creating 'ml' namespace via KF UI (cat ~/ml-default-editor.yaml)
 ### this needs less permissoins. fix this
@@ -202,6 +218,14 @@ Allocatable:
   nvidia.com/gpu:     1
   pods:               110
 ```
+
+## Training
+
+### Create a GPU enabled notebook and test with a CNN example to leverage GPU
+![alt text](./imgs/train_with_gpu.png)
+
+![alt text](./imgs/smi-train.png)
+
 ------------------------
 
 
